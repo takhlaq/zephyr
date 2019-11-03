@@ -1,0 +1,8 @@
+.vs/*
+out/*
+deps/glfw/out/*
+deps/glm/out/*
+*.pdb
+*.obj
+*.pch
+*.ipch
