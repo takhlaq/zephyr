@@ -24,6 +24,7 @@ find_package( Vulkan REQUIRED )
 include_directories( "deps" )
 include_directories( "deps/glfw" )
 include_directories( "deps/glm" )
+include_directories( ${Vulkan_INCLUDE_DIR} )
 
 add_subdirectory( "deps/glfw" )
 add_subdirectory( "deps/glm" )
