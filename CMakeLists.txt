@@ -15,11 +15,17 @@ include( "cmake/compiler.cmake" )
 include( "cmake/glfw.cmake" )
 include( "cmake/glm.cmake" )
 
+set( CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin" )
+set( CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin" )
+set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin" )
+
 find_package( Vulkan REQUIRED )
 
 include_directories( "deps" )
 include_directories( "deps/glfw" )
 include_directories( "deps/glm" )
 
-add_subdirectory( "src" )
+add_subdirectory( "deps/glfw" )
+add_subdirectory( "deps/glm" )
 
+add_subdirectory( "src" )

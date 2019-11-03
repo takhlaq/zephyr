@@ -4,7 +4,7 @@ cmake_policy(VERSION 3.2)
 set(GLM_VERSION "0.9.9")
 project(glm VERSION ${GLM_VERSION} LANGUAGES CXX)
 
-enable_testing()
+#enable_testing()
 
 option(GLM_QUIET "No CMake Message" OFF)
 option(BUILD_SHARED_LIBS "Build shared library" ON)
@@ -95,7 +95,7 @@ else()
 	endif()
 endif()
 
-option(GLM_TEST_ENABLE "Build unit tests" ON)
+option(GLM_TEST_ENABLE "Build unit tests" OFF)
 option(GLM_TEST_ENABLE_SIMD_SSE2 "Enable SSE2 optimizations" OFF)
 option(GLM_TEST_ENABLE_SIMD_SSE3 "Enable SSE3 optimizations" OFF)
 option(GLM_TEST_ENABLE_SIMD_SSSE3 "Enable SSSE3 optimizations" OFF)
