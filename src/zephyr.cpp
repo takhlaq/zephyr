@@ -63,7 +63,7 @@ void Zephyr::createInstanceVulkan()
    {
       throw std::runtime_error( "Unable to find all validation layers." );
    }
-   
+
    m_vkAppInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
    m_vkAppInfo.pApplicationName = m_settings.name.c_str();
    m_vkAppInfo.applicationVersion = VK_MAKE_VERSION( 1, 0, 0 );
@@ -104,7 +104,7 @@ void Zephyr::mainLoop()
    while( !glfwWindowShouldClose( m_pWindow ) )
    {
       glfwPollEvents();
-      
+      std::this_thread::sleep_for( 1us );
    }
 }
 

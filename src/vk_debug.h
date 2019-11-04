@@ -1,5 +1,5 @@
-#ifndef _VK_DEBUG_H
-#define _VK_DEBUG_H
+#ifndef _ZEPHYR_UTIL_VK_DEBUG_H
+#define _ZEPHYR_UTIL_VK_DEBUG_H
 
 #include <vulkan/vulkan.h>
 
@@ -26,8 +26,8 @@
 */
 
 namespace zephyr::util::vk
-{ 
-static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback( 
+{
+static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
    VkDebugUtilsMessageSeverityFlagBitsEXT severity,
    VkDebugUtilsMessageTypeFlagsEXT type,
    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
@@ -37,6 +37,6 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 
    return VK_FALSE;
 }
-}
+}; // namespace zephyr::util::vk
 
-#endif //_VK_DEBUG_H
+#endif //_ZEPHYR_UTIL_VK_DEBUG_H

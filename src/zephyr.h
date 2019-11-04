@@ -34,7 +34,7 @@ private:
    void initVulkan();
    void initDebugMessenger();
    void createInstanceVulkan();
-   
+
    void mainLoop();
 public:
    void cleanup();
@@ -44,7 +44,10 @@ public:
 
    bool checkVkValidationLayerSupport() const;
 
-   Zephyr(const zephyr::Settings&);
+   Zephyr( const zephyr::Settings& );
+   Zephyr( const Zephyr& ) = delete;
+   Zephyr( const Zephyr&& ) = delete;
+
    ~Zephyr();
 };
 };
