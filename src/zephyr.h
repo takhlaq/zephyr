@@ -2,6 +2,7 @@
 #define _ZEPHYR_H
 
 #include <string>
+#include <vector>
 
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
@@ -18,14 +19,20 @@ struct ZephyrSettings
 class Zephyr
 {
 private:
-   GLFWwindow* m_window;
+   GLFWwindow* m_pWindow;
    ZephyrSettings m_settings;
+   VkInstance m_vkInstance;
+   VkApplicationInfo m_vkAppInfo;
 
    void initWindow();
    void initVulkan();
+   void createInstanceVulkan();
    void mainLoop();
-   void cleanup();
 public:
+   void cleanup();
+
+   const std::vector<VkExtensionProperties> getVkExtensions() const;
+
    Zephyr(const ZephyrSettings&);
    ~Zephyr();
 };
