@@ -2,7 +2,14 @@
 out/*
 deps/glfw/out/*
 deps/glm/out/*
+build/*
 *.pdb
 *.obj
 *.pch
 *.ipch
+*.tlog
+*.log
+*.filters
+*.*proj
+*.exe
+*.ilk
