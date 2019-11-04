@@ -16,10 +16,10 @@
 
 int main()
 {
-   ZephyrSettings settings;
+   zephyr::Settings settings;
    settings.name = "Vulkan";
 
-   Zephyr zephyr( settings );
+   zephyr::Zephyr zephyr( settings );
 
    return 0;
 }
