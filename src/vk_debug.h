@@ -37,6 +37,20 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 
    return VK_FALSE;
 }
+
+/*
+Extension function, not automatically loaded. We have to look up its address ourselves using vkGetInstanceProcAddr. 
+Create our proxy function to handle in background. 
+*/
+VkResult createDebugUtilsMessengerEXT( VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger ) {
+   auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr( instance, "vkCreateDebugUtilsMessengerEXT" );
+   if( func != nullptr ) {
+      return func( instance, pCreateInfo, pAllocator, pDebugMessenger );
+   }
+   else {
+      return VK_ERROR_EXTENSION_NOT_PRESENT;
+   }
+}
 }; // namespace zephyr::util::vk
 
 #endif //_ZEPHYR_UTIL_VK_DEBUG_H

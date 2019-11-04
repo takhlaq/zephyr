@@ -51,7 +51,9 @@ void Zephyr::initDebugMessenger()
    createInfo.pfnUserCallback = zephyr::util::vk::debugCallback;
    createInfo.pUserData = nullptr;
 
-   if( vkCreateDebugUtilsMessengerEXT( m_vkInstance, &createInfo, nullptr, &m_vkDebugMessenger ) != VK_SUCCESS )
+   // vkCreateDebugUtilsMessengerEXT
+   // extension func, use helper to get its address in mem and call it
+   if( zephyr::util::vk::createDebugUtilsMessengerEXT( m_vkInstance, &createInfo, nullptr, &m_vkDebugMessenger ) != VK_SUCCESS )
    {
       throw std::runtime_error( "Unable to create debug messenger." );
    }

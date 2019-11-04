@@ -1,7 +1,5 @@
 project( zephyr )
 
-find_package( Vulkan REQUIRED )
-
 file( GLOB SOURCE *.cpp )
 file( GLOB HEADERS *.h )
 
@@ -11,4 +9,6 @@ add_executable( zephyr
 	${HEADERS}
 )
 
-target_link_libraries( zephyr glm_static glfw ${Vulkan_LIBRARY} )
+message( STATUS "VULKAN SHIT ${Vulkan_INCLUDE_DIR} ${Vulkan_LIBRARIES}" )
+
+target_link_libraries( zephyr glm_static glfw ${Vulkan_LIBRARIES} )
