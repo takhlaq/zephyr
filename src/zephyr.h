@@ -24,10 +24,12 @@ private:
    VkInstance m_vkInstance;
    VkApplicationInfo m_vkAppInfo;
    VkDebugUtilsMessengerEXT m_vkDebugMessenger;
+   VkPhysicalDevice m_vkPhysicalDevice;
 
    void initWindow();
    void initVulkan();
    void initDebugMessenger();
+   void initPhysicalDevice();
    void createInstanceVulkan();
    
    void cleanup();
@@ -35,8 +37,8 @@ private:
    void mainLoop();
 public:
 
-   const std::vector<VkExtensionProperties> getVkExtensions() const;
-   const std::vector<const char*> getVkRequiredExtensions() const;
+   static const std::vector<VkExtensionProperties> getVkExtensions();
+   static const std::vector<const char*> getVkRequiredExtensions();
 
    bool checkVkValidationLayerSupport() const;
 

@@ -1,5 +1,6 @@
 #include <cstring>
 #include <exception>
+#include <map>
 #include <iostream>
 #include <stdexcept>
 #include <thread>
@@ -47,14 +48,9 @@ void Zephyr::initDebugMessenger()
 {
    if( !enableValidationLayers ) return;
 
-   VkDebugUtilsMessengerCreateInfoEXT createInfo;
-   memset( &createInfo, 0, sizeof( createInfo) );
+   VkDebugUtilsMessengerCreateInfoEXT createInfo = {};
 
-   createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-   createInfo.messageSeverity = createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-   createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-   createInfo.pfnUserCallback = zephyr::util::vk::debugCallback;
-   createInfo.pUserData = nullptr;
+   zephyr::util::vk::populateDebugMessengerCreateInfo( createInfo );
 
    // vkCreateDebugUtilsMessengerEXT
    // extension func, use helper to get its address in mem and call it
@@ -64,6 +60,52 @@ void Zephyr::initDebugMessenger()
    }
 }
 
+int rateDeviceSuitability( VkPhysicalDevice device )
+{
+   VkPhysicalDeviceProperties deviceProps;
+   VkPhysicalDeviceFeatures deviceFeatures;
+   vkGetPhysicalDeviceProperties( device, &deviceProps);
+   vkGetPhysicalDeviceFeatures( device, &deviceFeatures );
+
+   if( !deviceFeatures.geometryShader )
+      return 0;
+
+   int score = 0;
+
+   if( deviceProps.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU )
+      score += 1000;
+
+   score += deviceProps.limits.maxImageDimension2D;
+}
+
+void Zephyr::initPhysicalDevice()
+{
+   m_vkPhysicalDevice = VK_NULL_HANDLE;
+
+   uint32_t deviceCount = 0;
+   vkEnumeratePhysicalDevices( m_vkInstance, &deviceCount, nullptr );
+
+   if( deviceCount == 0 )
+      throw std::runtime_error( "Failed to find GPUs with Vulkan support." );
+
+   std::vector<VkPhysicalDevice> devices( deviceCount );
+   vkEnumeratePhysicalDevices( m_vkInstance, &deviceCount, devices.data() );
+
+   std::multimap<int, VkPhysicalDevice> candidates;
+
+   for( const auto& device : devices )
+   {
+      int score = rateDeviceSuitability( device );
+      candidates.insert( std::make_pair( score, device ) );
+   }
+
+   if( candidates.rbegin()->first )
+      m_vkPhysicalDevice = candidates.rbegin()->second;
+   else
+      throw std::runtime_error( "Unable to find suitable GPU." );
+
+}
+
 void Zephyr::createInstanceVulkan()
 {
    if( enableValidationLayers && !checkVkValidationLayerSupport() )
@@ -71,7 +113,7 @@ void Zephyr::createInstanceVulkan()
       throw std::runtime_error( "Unable to find all validation layers." );
    }
 
-   memset( &m_vkAppInfo, 0, sizeof( m_vkAppInfo ) );
+   m_vkAppInfo = {};
    
    m_vkAppInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
    m_vkAppInfo.pApplicationName = m_settings.name.c_str();
@@ -80,8 +122,8 @@ void Zephyr::createInstanceVulkan()
    m_vkAppInfo.engineVersion = VK_MAKE_VERSION( 1, 0, 0 );
    m_vkAppInfo.apiVersion = VK_API_VERSION_1_0;
 
-   VkInstanceCreateInfo createInfo;
-   memset( &createInfo, 0, sizeof( createInfo) );
+   VkInstanceCreateInfo createInfo = {};
+   //memset( &createInfo, 0, sizeof( createInfo) );
 
    createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
    createInfo.pApplicationInfo = &m_vkAppInfo;
@@ -93,10 +135,14 @@ void Zephyr::createInstanceVulkan()
       createInfo.ppEnabledExtensionNames = extensions.data();
    }
    // layers
+   VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = {};
    if( enableValidationLayers )
    {
       createInfo.enabledLayerCount = static_cast<uint32_t>( validationLayers.size() );
       createInfo.ppEnabledLayerNames = validationLayers.data();
+      
+      zephyr::util::vk::populateDebugMessengerCreateInfo( debugCreateInfo );
+      createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
    }
    else
    {
@@ -127,7 +173,7 @@ void Zephyr::cleanup()
    glfwTerminate();
 }
 
-const std::vector<VkExtensionProperties> Zephyr::getVkExtensions() const
+const std::vector<VkExtensionProperties> Zephyr::getVkExtensions()
 {
    uint32_t extensionCount = 0;
    vkEnumerateInstanceExtensionProperties( nullptr, &extensionCount, nullptr );
@@ -143,7 +189,7 @@ const std::vector<VkExtensionProperties> Zephyr::getVkExtensions() const
    return extensions;
 }
 
-const std::vector<const char*> Zephyr::getVkRequiredExtensions() const
+const std::vector<const char*> Zephyr::getVkRequiredExtensions()
 {
    uint32_t glfwExtensionCount = 0;
    const char** glfwExtensions;
