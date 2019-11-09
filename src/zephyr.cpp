@@ -5,12 +5,12 @@
 #include <thread>
 
 #include "zephyr.h"
-
 #include "vk_debug.h"
 
 const std::vector<const char*> validationLayers =
 {
-   "VK_LAYER_KHRONOS_validation"
+   "VK_LAYER_KHRONOS_validation",
+   "VK_LAYER_LUNARG_monitor",
 };
 
 #ifdef NDEBUG
@@ -39,12 +39,17 @@ void Zephyr::initWindow()
 
 void Zephyr::initVulkan()
 {
+   createInstanceVulkan();
 
 }
 
 void Zephyr::initDebugMessenger()
 {
+   if( !enableValidationLayers ) return;
+
    VkDebugUtilsMessengerCreateInfoEXT createInfo;
+   memset( &createInfo, 0, sizeof( createInfo) );
+
    createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
    createInfo.messageSeverity = createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
    createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
@@ -66,6 +71,8 @@ void Zephyr::createInstanceVulkan()
       throw std::runtime_error( "Unable to find all validation layers." );
    }
 
+   memset( &m_vkAppInfo, 0, sizeof( m_vkAppInfo ) );
+   
    m_vkAppInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
    m_vkAppInfo.pApplicationName = m_settings.name.c_str();
    m_vkAppInfo.applicationVersion = VK_MAKE_VERSION( 1, 0, 0 );
@@ -74,12 +81,14 @@ void Zephyr::createInstanceVulkan()
    m_vkAppInfo.apiVersion = VK_API_VERSION_1_0;
 
    VkInstanceCreateInfo createInfo;
+   memset( &createInfo, 0, sizeof( createInfo) );
+
    createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
    createInfo.pApplicationInfo = &m_vkAppInfo;
-
+   
    // extensions
+   std::vector<const char*> extensions = this->getVkRequiredExtensions();
    {
-      std::vector<const char*> extensions = this->getVkRequiredExtensions();
       createInfo.enabledExtensionCount = extensions.size();
       createInfo.ppEnabledExtensionNames = extensions.data();
    }
@@ -112,9 +121,9 @@ void Zephyr::mainLoop()
 
 void Zephyr::cleanup()
 {
+   zephyr::util::vk::destroyDebugUtilsMessengerEXT( m_vkInstance, m_vkDebugMessenger, nullptr );
    vkDestroyInstance( m_vkInstance, nullptr );
    glfwDestroyWindow( m_pWindow );
-   m_pWindow = nullptr;
    glfwTerminate();
 }
 
@@ -182,6 +191,8 @@ Zephyr::Zephyr( const zephyr::Settings& settings ) :
 {
    initWindow();
    initVulkan();
+   initDebugMessenger();
+
    mainLoop();
    cleanup();
 }

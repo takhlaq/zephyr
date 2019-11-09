@@ -29,10 +29,11 @@ private:
    void initVulkan();
    void initDebugMessenger();
    void createInstanceVulkan();
+   
+   void cleanup();
 
    void mainLoop();
 public:
-   void cleanup();
 
    const std::vector<VkExtensionProperties> getVkExtensions() const;
    const std::vector<const char*> getVkRequiredExtensions() const;
