@@ -1,12 +1,15 @@
 #include <cstring>
 #include <exception>
-#include <map>
 #include <iostream>
+#include <map>
+#include <set>
 #include <stdexcept>
 #include <thread>
 
 #include "zephyr.h"
 #include "vk_debug.h"
+
+#include "platform.h"
 
 const std::vector<const char*> validationLayers =
 {
@@ -19,6 +22,7 @@ const bool enableValidationLayers = false;
 #else
 const bool enableValidationLayers = true;
 #endif
+
 
 namespace zephyr
 {
@@ -41,7 +45,10 @@ void Zephyr::initWindow()
 void Zephyr::initVulkan()
 {
    createInstanceVulkan();
-
+   initDebugMessenger();
+   createSurface();
+   pickPhysicalDevice();
+   createLogicalDevice();
 }
 
 void Zephyr::initDebugMessenger()
@@ -60,12 +67,61 @@ void Zephyr::initDebugMessenger()
    }
 }
 
-int rateDeviceSuitability( VkPhysicalDevice device )
+void Zephyr::createSurface()
+{
+   if( glfwCreateWindowSurface( m_vkInstance, m_pWindow, nullptr, &m_vkSurface ) != VK_SUCCESS )
+   {
+      throw std::runtime_error( "Failed to create window surface." );
+   }
+}
+
+QueueFamilyIndices Zephyr::findQueueFamilies( VkPhysicalDevice device )
+{
+   QueueFamilyIndices indices;
+   // assign index to queue families that could be found
+   uint32_t queueFamilyCount = 0;
+   vkGetPhysicalDeviceQueueFamilyProperties( device, &queueFamilyCount, nullptr );
+
+   std::vector<VkQueueFamilyProperties> queueFamilies( queueFamilyCount );
+   vkGetPhysicalDeviceQueueFamilyProperties( device, &queueFamilyCount, queueFamilies.data() );
+
+
+   int i = 0;
+
+   for( const auto& queueFamily : queueFamilies )
+   {
+      if( queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT )
+         indices.graphicsFamily = i;
+
+      VkBool32 presentSupport = false;
+      vkGetPhysicalDeviceSurfaceSupportKHR( device, i, m_vkSurface, &presentSupport );
+      if( presentSupport )
+         indices.presentFamily = i;
+
+      if( indices.isComplete() )
+         break;
+      ++i;
+   }
+
+   return indices;
+}
+
+bool Zephyr::isDeviceSuitable( VkPhysicalDevice device )
+{
+   QueueFamilyIndices indices = findQueueFamilies( device );
+
+   return indices.isComplete();
+}
+
+int Zephyr::rateDeviceSuitability( VkPhysicalDevice device )
 {
    VkPhysicalDeviceProperties deviceProps;
    VkPhysicalDeviceFeatures deviceFeatures;
-   vkGetPhysicalDeviceProperties( device, &deviceProps);
+   vkGetPhysicalDeviceProperties( device, &deviceProps );
    vkGetPhysicalDeviceFeatures( device, &deviceFeatures );
+
+   if( !isDeviceSuitable( device ) )
+      return 0;
 
    if( !deviceFeatures.geometryShader )
       return 0;
@@ -78,7 +134,7 @@ int rateDeviceSuitability( VkPhysicalDevice device )
    score += deviceProps.limits.maxImageDimension2D;
 }
 
-void Zephyr::initPhysicalDevice()
+void Zephyr::pickPhysicalDevice()
 {
    m_vkPhysicalDevice = VK_NULL_HANDLE;
 
@@ -96,7 +152,8 @@ void Zephyr::initPhysicalDevice()
    for( const auto& device : devices )
    {
       int score = rateDeviceSuitability( device );
-      candidates.insert( std::make_pair( score, device ) );
+      if( score != 0 )
+         candidates.insert( std::make_pair( score, device ) );
    }
 
    if( candidates.rbegin()->first )
@@ -104,6 +161,55 @@ void Zephyr::initPhysicalDevice()
    else
       throw std::runtime_error( "Unable to find suitable GPU." );
 
+}
+
+void Zephyr::createLogicalDevice()
+{
+   QueueFamilyIndices indices = findQueueFamilies( m_vkPhysicalDevice );
+   
+   std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+   std::set<uint32_t> uniqueQueueFamilies = { indices.graphicsFamily.value(), indices.presentFamily.value() };
+
+   float queuePriority = 1.0f;
+
+   for( uint32_t queueFamily : uniqueQueueFamilies )
+   {
+      VkDeviceQueueCreateInfo queueCreateInfo = {};
+      queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+      queueCreateInfo.queueFamilyIndex = queueFamily;
+      queueCreateInfo.queueCount = 1;
+      queueCreateInfo.pQueuePriorities = &queuePriority;
+      queueCreateInfos.push_back( queueCreateInfo );
+   }
+   
+
+   VkPhysicalDeviceFeatures deviceFeatures = {};
+   VkDeviceCreateInfo createInfo = {};
+
+   createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+   createInfo.pQueueCreateInfos = queueCreateInfos.data();
+   createInfo.queueCreateInfoCount = static_cast<uint32_t>( queueCreateInfos.size() );
+
+   createInfo.pEnabledFeatures = &deviceFeatures;
+   createInfo.enabledExtensionCount = 0;
+
+   if( enableValidationLayers )
+   {
+      createInfo.enabledLayerCount = validationLayers.size();
+      createInfo.ppEnabledLayerNames = validationLayers.data();
+   }
+   else
+   {
+      createInfo.enabledLayerCount = 0;
+   }
+
+   if( vkCreateDevice( m_vkPhysicalDevice, &createInfo, nullptr, &m_vkLogicalDevice ) != VK_SUCCESS )
+   {
+      throw std::runtime_error( "Unable to create logical device." );
+   }
+
+   vkGetDeviceQueue( m_vkLogicalDevice, indices.graphicsFamily.value(), 0, &m_vkGraphicsQueue );
+   vkGetDeviceQueue( m_vkLogicalDevice, indices.presentFamily.value(), 0, &m_vkPresentQueue );
 }
 
 void Zephyr::createInstanceVulkan()
@@ -114,7 +220,7 @@ void Zephyr::createInstanceVulkan()
    }
 
    m_vkAppInfo = {};
-   
+
    m_vkAppInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
    m_vkAppInfo.pApplicationName = m_settings.name.c_str();
    m_vkAppInfo.applicationVersion = VK_MAKE_VERSION( 1, 0, 0 );
@@ -127,7 +233,7 @@ void Zephyr::createInstanceVulkan()
 
    createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
    createInfo.pApplicationInfo = &m_vkAppInfo;
-   
+
    // extensions
    std::vector<const char*> extensions = this->getVkRequiredExtensions();
    {
@@ -140,9 +246,9 @@ void Zephyr::createInstanceVulkan()
    {
       createInfo.enabledLayerCount = static_cast<uint32_t>( validationLayers.size() );
       createInfo.ppEnabledLayerNames = validationLayers.data();
-      
+
       zephyr::util::vk::populateDebugMessengerCreateInfo( debugCreateInfo );
-      createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
+      createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)& debugCreateInfo;
    }
    else
    {
@@ -168,7 +274,11 @@ void Zephyr::mainLoop()
 void Zephyr::cleanup()
 {
    zephyr::util::vk::destroyDebugUtilsMessengerEXT( m_vkInstance, m_vkDebugMessenger, nullptr );
+   vkDestroyDevice( m_vkLogicalDevice, nullptr );
+
+   vkDestroySurfaceKHR( m_vkInstance, m_vkSurface, nullptr );
    vkDestroyInstance( m_vkInstance, nullptr );
+
    glfwDestroyWindow( m_pWindow );
    glfwTerminate();
 }
@@ -237,7 +347,7 @@ Zephyr::Zephyr( const zephyr::Settings& settings ) :
 {
    initWindow();
    initVulkan();
-   initDebugMessenger();
+  
 
    mainLoop();
    cleanup();

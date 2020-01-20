@@ -4,6 +4,7 @@
 #include <chrono>
 
 // todo: this is stupid but forward decl all the things gonna be pain
+#define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
 #define GLM_FORCE_RADIANS
